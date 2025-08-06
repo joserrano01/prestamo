@@ -151,10 +151,11 @@ services:
       - financepro_internal_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://0.0.0.0:3000"]
       interval: 30s
-      timeout: 10s
-      retries: 3
+      timeout: 15s
+      retries: 5
+      start_period: 60s
 
   # Nginx como proxy reverso y punto de entrada único
   nginx:
@@ -163,7 +164,7 @@ services:
     ports:
       - "80:80"          # Puerto principal de la aplicación
       - "8080:8080"      # Puerto para acceso directo al backend (desarrollo)
-      - "3001:3001"      # Puerto para HMR de Vite (desarrollo)
+      # - "3001:3001"      # Puerto para HMR de Vite (REMOVIDO - HMR deshabilitado)
       - "15672:15672"    # Puerto para RabbitMQ Management UI
       - "7700:7700"      # Puerto para Meilisearch Dashboard
       - "6379:6379"      # Puerto para Redis (desarrollo)

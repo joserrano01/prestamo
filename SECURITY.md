@@ -4,6 +4,49 @@
 
 FinancePro implementa un sistema de seguridad robusto y multicapa diseñado específicamente para proteger datos financieros sensibles. Este documento detalla todas las medidas de seguridad implementadas en el sistema.
 
+## 🆕 MEJORAS DE SEGURIDAD RECIENTES (v1.0-security-enhanced)
+
+### ✅ Mejoras Críticas Implementadas:
+
+#### 🔐 **1. Manejo Seguro de Tokens de Autenticación**
+- **ANTES**: Tokens almacenados en localStorage (vulnerable a XSS)
+- **AHORA**: Tokens almacenados en sessionStorage con expiración automática
+- **BENEFICIO**: Protección contra ataques XSS y eliminación automática al cerrar navegador
+- **IMPLEMENTACIÓN**: AuthService con gestión segura de tokens
+
+#### 🛡️ **2. Headers de Seguridad Avanzados**
+- **Content-Security-Policy**: Protección contra XSS
+- **X-Frame-Options**: Prevención de clickjacking
+- **X-Content-Type-Options**: Prevención de MIME sniffing
+- **Referrer-Policy**: Control de información de referencia
+- **X-Permitted-Cross-Domain-Policies**: Bloqueo de políticas cross-domain
+
+#### 🚦 **3. Rate Limiting Implementado**
+- **Login**: 5 intentos por minuto por IP
+- **API General**: 30 requests por minuto por IP
+- **Frontend**: 60 requests por minuto por IP
+- **BENEFICIO**: Protección contra ataques de fuerza bruta y DDoS
+
+#### 🔒 **4. Protección de Rutas**
+- **ProtectedRoute**: Componente que protege rutas sensibles
+- **Verificación automática**: Validación de tokens en cada navegación
+- **Redirección segura**: Preserva destino original después del login
+
+#### 🔑 **5. Variables de Entorno Seguras**
+- **Claves generadas**: SECRET_KEY y ENCRYPTION_KEY únicos
+- **Contraseñas fuertes**: POSTGRES_PASSWORD segura
+- **Separación**: Archivo .env.secure para producción
+
+#### 📝 **6. Logging de Seguridad**
+- **Intentos de login**: Log especializado para monitoreo
+- **Acceso a API**: Tracking de requests con detalles de seguridad
+- **Rate limiting**: Logs de requests bloqueados
+
+#### 🔧 **7. Configuración de Red Segura**
+- **Puerto 3001 removido**: Eliminación de puertos innecesarios
+- **server_tokens off**: Ocultación de versión de nginx
+- **Timeouts configurados**: Prevención de ataques de agotamiento
+
 ## 🛡️ Medidas de Seguridad Implementadas
 
 ### 1. Encriptación de Datos Sensibles

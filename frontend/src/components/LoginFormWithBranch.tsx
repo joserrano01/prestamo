@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from 'react-router-dom';
 import { useSucursales } from '../hooks/useSucursales';
+import AuthService from '../services/authService';
 
 
 // --- Optimized Icon Components with React.memo ---
@@ -85,14 +86,11 @@ const LoadingSpinner = ({ size = "h-5 w-5" }) => (
 );
 
 export const LoginFormWithBranch = React.memo(() => {
-  // Lazy initialization para cargar datos recordados
+  // Lazy initialization para cargar datos recordados usando AuthService seguro
   const [identifier, setIdentifier] = useState(() => {
     try {
-      const rememberUser = localStorage.getItem('remember_user');
-      if (rememberUser === 'true') {
-        const lastIdentifier = localStorage.getItem('last_identifier');
-        return lastIdentifier || '';
-      }
+      const preferences = AuthService.getUserPreferences();
+      return preferences.remember && preferences.identifier ? preferences.identifier : '';
     } catch (error) {
       console.warn('Error loading identifier:', error);
     }
@@ -101,11 +99,8 @@ export const LoginFormWithBranch = React.memo(() => {
 
   const [sucursalId, setSucursalId] = useState(() => {
     try {
-      const rememberUser = localStorage.getItem('remember_user');
-      if (rememberUser === 'true') {
-        const lastSucursal = localStorage.getItem('last_sucursal');
-        return lastSucursal || '';
-      }
+      const preferences = AuthService.getUserPreferences();
+      return preferences.remember && preferences.sucursalId ? preferences.sucursalId : '';
     } catch (error) {
       console.warn('Error loading sucursal:', error);
     }
@@ -114,7 +109,8 @@ export const LoginFormWithBranch = React.memo(() => {
 
   const [rememberMe, setRememberMe] = useState(() => {
     try {
-      return localStorage.getItem('remember_user') === 'true';
+      const preferences = AuthService.getUserPreferences();
+      return preferences.remember;
     } catch (error) {
       return false;
     }
@@ -211,26 +207,18 @@ export const LoginFormWithBranch = React.memo(() => {
 
       const loginResult: LoginResponse = await response.json();
 
-      // Store tokens in localStorage with error handling
+      // Store tokens using secure AuthService
       try {
-        localStorage.setItem('access_token', loginResult.access_token);
-        localStorage.setItem('refresh_token', loginResult.refresh_token);
-        localStorage.setItem('user', JSON.stringify(loginResult.user));
+        // Almacenar tokens de forma segura usando sessionStorage
+        AuthService.storeTokens(loginResult);
 
-        // Optional: Remember me functionality
-        if (rememberMe) {
-          localStorage.setItem('remember_user', 'true');
-          localStorage.setItem('last_identifier', identifier.trim());
-          localStorage.setItem('last_sucursal', sucursalId);
-        } else {
-          // Clear remember me data if not checked
-          localStorage.removeItem('remember_user');
-          localStorage.removeItem('last_identifier');
-          localStorage.removeItem('last_sucursal');
-        }
+        // Almacenar preferencias del usuario (datos no sensibles) en localStorage
+        AuthService.storeUserPreferences(rememberMe, identifier.trim(), sucursalId);
+        
+        console.log('✅ Login exitoso - Tokens almacenados de forma segura');
       } catch (storageError) {
-        console.warn('Error storing login data:', storageError);
-        // Continue anyway, just log the warning
+        console.error('❌ Error storing login data:', storageError);
+        throw new Error('Error al almacenar credenciales de autenticación');
       }
 
       // Navigate to dashboard
