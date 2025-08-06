@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker logs:*)",
+      "Bash(docker restart:*)",
+      "Bash(curl:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker volume prune:*)"
+    ],
+    "deny": []
+  }
+}

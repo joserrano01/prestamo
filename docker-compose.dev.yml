@@ -1,0 +1,195 @@
+# version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: financepro_db_dev
+    environment:
+      POSTGRES_DB: financepro_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    # Puerto solo disponible internamente en la red Docker
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: financepro_redis_dev
+    # Puerto solo disponible internamente
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ para mensajería asíncrona
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: financepro_rabbitmq_dev
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+    # Puertos solo disponibles internamente
+    volumes:
+      - rabbitmq_dev_data:/var/lib/rabbitmq
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Meilisearch para búsqueda de texto completo
+  meilisearch:
+    image: getmeili/meilisearch:v1.5
+    container_name: financepro_meilisearch_dev
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY}
+      MEILI_ENV: development
+      MEILI_HTTP_ADDR: 0.0.0.0:7700
+    # Puerto solo disponible internamente
+    volumes:
+      - meilisearch_dev_data:/meili_data
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend API (FastAPI) - Modo desarrollo
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financepro_backend_dev
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/financepro_dev
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - LOG_LEVEL=DEBUG
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/${RABBITMQ_VHOST}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - MEILISEARCH_URL=${MEILISEARCH_URL}
+      - MEILISEARCH_MASTER_KEY=${MEILISEARCH_MASTER_KEY}
+      - ENABLE_FULL_TEXT_SEARCH=${ENABLE_FULL_TEXT_SEARCH}
+      - ENABLE_ASYNC_PROCESSING=${ENABLE_ASYNC_PROCESSING}
+      - REQUIRE_2FA=${REQUIRE_2FA}
+      - ENCRYPT_PII_DATA=${ENCRYPT_PII_DATA}
+      - ENABLE_AUDIT_LOG=${ENABLE_AUDIT_LOG}
+    # Puerto solo disponible internamente
+    volumes:
+      - ./backend:/app
+      - backend_dev_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - financepro_internal_network
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (React) - Modo desarrollo
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: financepro_frontend_dev
+    environment:
+      - VITE_API_URL=http://localhost/api/v1
+    # Puerto solo disponible internamente
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - financepro_internal_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx como proxy reverso y punto de entrada único
+  nginx:
+    image: nginx:alpine
+    container_name: financepro_nginx_dev
+    ports:
+      - "80:80"          # Puerto principal de la aplicación
+      - "8080:8080"      # Puerto para acceso directo al backend (desarrollo)
+      - "15672:15672"    # Puerto para RabbitMQ Management UI
+      - "7700:7700"      # Puerto para Meilisearch Dashboard
+      - "6379:6379"      # Puerto para Redis (desarrollo)
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - financepro_external_network
+      - financepro_internal_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  backend_dev_uploads:
+    driver: local
+  rabbitmq_dev_data:
+    driver: local
+  meilisearch_dev_data:
+    driver: local
+
+networks:
+  # Red externa - Solo nginx tiene acceso
+  financepro_external_network:
+    driver: bridge
+    name: financepro_external_dev
+  
+  # Red interna - Todos los servicios se comunican aquí
+  financepro_internal_network:
+    driver: bridge
+    name: financepro_internal_dev
+    internal: false  # Permitir acceso a internet para desarrollo

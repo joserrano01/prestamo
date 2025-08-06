@@ -1,0 +1,185 @@
+# version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: financepro_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-financepro_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    # Puerto solo disponible internamente
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: financepro_redis
+    # Puerto solo disponible internamente
+    volumes:
+      - redis_data:/data
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ para mensajería asíncrona
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: financepro_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: financepro
+      RABBITMQ_DEFAULT_PASS: rabbitmq_password
+      RABBITMQ_DEFAULT_VHOST: financepro_vhost
+    # Puertos solo disponibles internamente
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Meilisearch para búsqueda de texto completo
+  meilisearch:
+    image: getmeili/meilisearch:v1.5
+    container_name: financepro_meilisearch
+    environment:
+      MEILI_MASTER_KEY: meilisearch_master_key_change_in_production
+      MEILI_ENV: production
+      MEILI_HTTP_ADDR: 0.0.0.0:7700
+    # Puerto solo disponible internamente
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - financepro_internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financepro_backend
+    # Puerto solo disponible internamente
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-financepro_dev}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RABBITMQ_URL=amqp://financepro:rabbitmq_password@rabbitmq:5672/financepro_vhost
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=financepro
+      - RABBITMQ_PASSWORD=rabbitmq_password
+      - RABBITMQ_VHOST=financepro_vhost
+      - CELERY_BROKER_URL=amqp://financepro:rabbitmq_password@rabbitmq:5672/financepro_vhost
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - MEILISEARCH_URL=http://meilisearch:7700
+      - MEILISEARCH_MASTER_KEY=meilisearch_master_key_change_in_production
+    # Puerto solo disponible internamente
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - financepro_internal_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: financepro_frontend
+    # Puerto solo disponible internamente
+    depends_on:
+      - backend
+    networks:
+      - financepro_internal_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx como proxy reverso y punto de entrada único
+  nginx:
+    image: nginx:alpine
+    container_name: financepro_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.simple.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - financepro_external_network
+      - financepro_internal_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+
+networks:
+  # Red externa - Solo nginx tiene acceso desde el exterior
+  financepro_external_network:
+    driver: bridge
+    name: financepro_external
+  
+  # Red interna - Todos los servicios se comunican aquí de forma segura
+  financepro_internal_network:
+    driver: bridge
+    name: financepro_internal
+    internal: true  # Red completamente interna sin acceso a internet

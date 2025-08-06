@@ -1,0 +1,480 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from 'react-router-dom';
+import { useSucursales } from '../hooks/useSucursales';
+
+
+// --- Optimized Icon Components with React.memo ---
+const BranchIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+));
+BranchIcon.displayName = 'BranchIcon';
+
+const UserIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+));
+UserIcon.displayName = 'UserIcon';
+
+const LockIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+  </svg>
+));
+LockIcon.displayName = 'LockIcon';
+
+const EyeIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+));
+EyeIcon.displayName = 'EyeIcon';
+
+const EyeOffIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+  </svg>
+));
+EyeOffIcon.displayName = 'EyeOffIcon';
+
+const AlertTriangleIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5 text-red-500" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+  </svg>
+));
+AlertTriangleIcon.displayName = 'AlertTriangleIcon';
+
+const CheckIcon = React.memo<{ className?: string }>(({ className = "h-5 w-5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+));
+CheckIcon.displayName = 'CheckIcon';
+
+const ShieldIcon = React.memo<{ className?: string }>(({ className = "h-12 w-12" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+));
+ShieldIcon.displayName = 'ShieldIcon';
+
+interface LoginFormData {
+  identifier: string;
+  password: string;
+  sucursal_id: string;
+}
+
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  user: {
+    id: number;
+    email: string;
+    nombre: string;
+    sucursal_id: string;
+  };
+}
+
+const LoadingSpinner = ({ size = "h-5 w-5" }) => (
+  <div className={`animate-spin rounded-full ${size} border-2 border-white border-t-transparent`}></div>
+);
+
+export const LoginFormWithBranch = React.memo(() => {
+  console.log('🔄 LoginFormWithBranch re-rendered at', new Date().toLocaleTimeString());
+  
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [sucursalId, setSucursalId] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  
+  // Memory optimization: Using useRef for AbortController
+  const fetchControllerRef = useRef<AbortController | null>(null);
+  const isInitialized = useRef(false);
+
+  const navigate = useNavigate();
+  const { sucursales, loading: sucursalesLoading, error: sucursalesError } = useSucursales();
+  
+  // Debug logging for sucursales
+  React.useEffect(() => {
+    console.log('📦 Component received sucursales:', sucursales);
+    console.log('📦 Sucursales loading:', sucursalesLoading);
+    console.log('📦 Sucursales error:', sucursalesError);
+    console.log('📦 Sucursales length:', sucursales.length);
+  }, [sucursales, sucursalesLoading, sucursalesError]);
+
+  // Load remembered data only once
+  React.useEffect(() => {
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      const rememberUser = localStorage.getItem('remember_user');
+      if (rememberUser === 'true') {
+        const lastIdentifier = localStorage.getItem('last_identifier');
+        const lastSucursal = localStorage.getItem('last_sucursal');
+        
+        if (lastIdentifier && lastSucursal) {
+          setIdentifier(lastIdentifier);
+          setSucursalId(lastSucursal);
+          setRememberMe(true);
+        }
+      }
+    }
+  }, []);
+
+  // Cleanup effect for memory management
+  React.useEffect(() => {
+    return () => {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Memoized form validation
+  const isFormValid = useMemo(() => {
+    return identifier.trim() !== '' && 
+           password.trim() !== '' && 
+           sucursalId !== '';
+  }, [identifier, password, sucursalId]);
+
+  // Simplified validation - only on blur to prevent constant re-renders
+  const validateField = useCallback((name: string, value: string) => {
+    setFieldErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[name];
+      
+      switch (name) {
+        case 'identifier':
+          if (!value.trim()) {
+            newErrors.identifier = 'El identificador es requerido';
+          } else if (value.length < 3) {
+            newErrors.identifier = 'El identificador debe tener al menos 3 caracteres';
+          }
+          break;
+        case 'password':
+          if (!value.trim()) {
+            newErrors.password = 'La contraseña es requerida';
+          } else if (value.length < 6) {
+            newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+          }
+          break;
+        case 'sucursal_id':
+          if (!value) {
+            newErrors.sucursal_id = 'Debe seleccionar una sucursal';
+          }
+          break;
+      }
+      
+      return newErrors;
+    });
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Update individual state
+    if (name === 'identifier') setIdentifier(value);
+    else if (name === 'password') setPassword(value);
+    else if (name === 'sucursal_id') setSucursalId(value);
+    
+    setGeneralError(null);
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Prevent concurrent requests
+    if (isLoading || !isFormValid) return;
+
+    setIsLoading(true);
+    setGeneralError(null);
+    
+    // Create new AbortController for this specific request
+    fetchControllerRef.current = new AbortController();
+    
+    try {
+      // Prepare login payload
+      const loginPayload = {
+        identifier: identifier,
+        password: password,
+        sucursal_id: sucursalId
+      };
+
+      // Call login API
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginPayload),
+        signal: fetchControllerRef.current.signal
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      const loginResult: LoginResponse = await response.json();
+
+      // Store tokens in localStorage
+      localStorage.setItem('access_token', loginResult.access_token);
+      localStorage.setItem('refresh_token', loginResult.refresh_token);
+      localStorage.setItem('user', JSON.stringify(loginResult.user));
+
+      // Optional: Remember me functionality
+      if (rememberMe) {
+        localStorage.setItem('remember_user', 'true');
+        localStorage.setItem('last_identifier', identifier);
+        localStorage.setItem('last_sucursal', sucursalId);
+      }
+
+      console.log('Login exitoso:', loginResult.user);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+      
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Petición de login abortada.');
+        return;
+      }
+      console.error('Error en login:', err);
+      setGeneralError(err instanceof Error ? err.message : 'Error de conexión');
+    } finally {
+      setIsLoading(false);
+      fetchControllerRef.current = null;
+    }
+  }, [isLoading, isFormValid, navigate]);
+
+  // Removed selectedSucursal to prevent re-renders
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <div className="bg-gradient-to-r from-green-600 to-green-700 p-4 rounded-2xl shadow-lg transform transition-transform hover:scale-105">
+                <ShieldIcon className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">FinancePro</h1>
+            <p className="text-gray-600">Accede a tu cuenta de forma segura</p>
+          </div>
+
+          {/* Login Form */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+            {/* Error Alert */}
+            {generalError && (
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg animate-fade-in">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangleIcon className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700 font-medium">{generalError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className={isLoading || sucursalesLoading ? 'opacity-60 pointer-events-none' : ''}>
+              
+              {/* Branch Selector */}
+              <div className="space-y-2">
+                <label htmlFor="sucursal_id" className="block text-sm font-semibold text-gray-800">
+                  Sucursal
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
+                    <BranchIcon className="h-5 w-5" />
+                  </div>
+                  <select
+                    id="sucursal_id"
+                    name="sucursal_id"
+                    value={sucursalId}
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateField(e.target.name, e.target.value)}
+                    className={`w-full pl-12 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium ${
+                      fieldErrors.sucursal_id 
+                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    required
+                  >
+                    <option value="" className="text-gray-500">
+                      {sucursalesLoading ? 'Cargando sucursales...' : 'Selecciona tu sucursal'}
+                    </option>
+                    {sucursales.map((sucursal) => (
+                      <option key={sucursal.id} value={sucursal.id} className="text-gray-900">
+                        {sucursal.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {fieldErrors.sucursal_id && (
+                  <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
+                    <AlertTriangleIcon className="h-4 w-4" />
+                    <p className="text-sm font-medium">{fieldErrors.sucursal_id}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Identifier Field */}
+              <div className="space-y-2">
+                <label htmlFor="identifier" className="block text-sm font-semibold text-gray-800">
+                  Email o Código de Usuario
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
+                    <UserIcon className="h-5 w-5" />
+                  </div>
+                  <input
+                    id="identifier"
+                    name="identifier"
+                    type="text"
+                    value={identifier}
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateField(e.target.name, e.target.value)}
+                    className={`w-full pl-12 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium placeholder:text-gray-400 ${
+                      fieldErrors.identifier 
+                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    placeholder="tu@email.com o USR001"
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Puedes usar tu email o código de usuario
+                </p>
+                {fieldErrors.identifier && (
+                  <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
+                    <AlertTriangleIcon className="h-4 w-4" />
+                    <p className="text-sm font-medium">{fieldErrors.identifier}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-800">
+                  Contraseña
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
+                    <LockIcon className="h-5 w-5" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateField(e.target.name, e.target.value)}
+                    className={`w-full pl-12 pr-12 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium placeholder:text-gray-400 ${
+                      fieldErrors.password 
+                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    placeholder="Ingresa tu contraseña"
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-green-600 transition-colors focus:outline-none focus:text-green-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? 
+                      <EyeOffIcon className="h-5 w-5" /> : 
+                      <EyeIcon className="h-5 w-5" />
+                    }
+                  </button>
+                </div>
+                {fieldErrors.password && (
+                  <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
+                    <AlertTriangleIcon className="h-4 w-4" />
+                    <p className="text-sm font-medium">{fieldErrors.password}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Options */}
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center group cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded transition-all duration-200 group-hover:border-green-400"
+                    />
+                    {rememberMe && (
+                      <CheckIcon className="h-3 w-3 text-green-600 absolute top-0.5 left-0.5 pointer-events-none" />
+                    )}
+                  </div>
+                  <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900 transition-colors font-medium">
+                    Recordarme
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors focus:outline-none focus:underline"
+                  onClick={() => alert('Función de recuperación de contraseña próximamente')}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
+              {/* Submit button */}
+              <div className="pt-8">
+                <button
+                  type="submit"
+                  disabled={!isFormValid || isLoading || sucursalesLoading}
+                  className={`group relative w-full py-4 px-6 border border-transparent rounded-xl text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 transform ${
+                    isFormValid && !isLoading && !sucursalesLoading
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'
+                      : 'bg-gray-400 cursor-not-allowed opacity-60'
+                  }`}
+                >
+                  <span className="absolute left-0 inset-y-0 flex items-center pl-4">
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <ShieldIcon className="h-5 w-5 text-white/80 group-hover:text-white transition-colors" />
+                    )}
+                  </span>
+                  <span className="ml-6">
+                    {isLoading ? (
+                      'Verificando credenciales...'
+                    ) : (
+                      'Iniciar Sesión Segura'
+                    )}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+LoginFormWithBranch.displayName = 'LoginFormWithBranch';
