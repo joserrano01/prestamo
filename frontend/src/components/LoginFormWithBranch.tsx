@@ -85,58 +85,49 @@ const LoadingSpinner = ({ size = "h-5 w-5" }) => (
 );
 
 export const LoginFormWithBranch = React.memo(() => {
-  console.log('🔄 LoginFormWithBranch re-rendered at', new Date().toLocaleTimeString());
-  
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [sucursalId, setSucursalId] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  
-  // Memory optimization: Using useRef for AbortController
-  const fetchControllerRef = useRef<AbortController | null>(null);
-  const isInitialized = useRef(false);
-
-  const navigate = useNavigate();
-  const { sucursales, loading: sucursalesLoading, error: sucursalesError } = useSucursales();
-  
-  // Debug logging for sucursales
-  React.useEffect(() => {
-    console.log('📦 Component received sucursales:', sucursales);
-    console.log('📦 Sucursales loading:', sucursalesLoading);
-    console.log('📦 Sucursales error:', sucursalesError);
-    console.log('📦 Sucursales length:', sucursales.length);
-  }, [sucursales, sucursalesLoading, sucursalesError]);
-
-  // Load remembered data only once
-  React.useEffect(() => {
-    if (!isInitialized.current) {
-      isInitialized.current = true;
+  // Lazy initialization para cargar datos recordados
+  const [identifier, setIdentifier] = useState(() => {
+    try {
       const rememberUser = localStorage.getItem('remember_user');
       if (rememberUser === 'true') {
         const lastIdentifier = localStorage.getItem('last_identifier');
-        const lastSucursal = localStorage.getItem('last_sucursal');
-        
-        if (lastIdentifier && lastSucursal) {
-          setIdentifier(lastIdentifier);
-          setSucursalId(lastSucursal);
-          setRememberMe(true);
-        }
+        return lastIdentifier || '';
       }
+    } catch (error) {
+      console.warn('Error loading identifier:', error);
     }
-  }, []);
+    return '';
+  });
 
-  // Cleanup effect for memory management
-  React.useEffect(() => {
-    return () => {
-      if (fetchControllerRef.current) {
-        fetchControllerRef.current.abort();
+  const [sucursalId, setSucursalId] = useState(() => {
+    try {
+      const rememberUser = localStorage.getItem('remember_user');
+      if (rememberUser === 'true') {
+        const lastSucursal = localStorage.getItem('last_sucursal');
+        return lastSucursal || '';
       }
-    };
-  }, []);
+    } catch (error) {
+      console.warn('Error loading sucursal:', error);
+    }
+    return '';
+  });
+
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      return localStorage.getItem('remember_user') === 'true';
+    } catch (error) {
+      return false;
+    }
+  });
+
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  
+  const navigate = useNavigate();
+  const { sucursales, loading: sucursalesLoading, error: sucursalesError } = useSucursales();
 
   // Memoized form validation
   const isFormValid = useMemo(() => {
@@ -191,31 +182,26 @@ export const LoginFormWithBranch = React.memo(() => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent concurrent requests
+    // Prevent concurrent requests and double submission
     if (isLoading || !isFormValid) return;
 
     setIsLoading(true);
     setGeneralError(null);
     
-    // Create new AbortController for this specific request
-    fetchControllerRef.current = new AbortController();
-    
     try {
       // Prepare login payload
       const loginPayload = {
-        identifier: identifier,
-        password: password,
+        identifier: identifier.trim(),
+        password: password.trim(),
         sucursal_id: sucursalId
       };
 
-      // Call login API
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(loginPayload),
-        signal: fetchControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -225,35 +211,42 @@ export const LoginFormWithBranch = React.memo(() => {
 
       const loginResult: LoginResponse = await response.json();
 
-      // Store tokens in localStorage
-      localStorage.setItem('access_token', loginResult.access_token);
-      localStorage.setItem('refresh_token', loginResult.refresh_token);
-      localStorage.setItem('user', JSON.stringify(loginResult.user));
+      // Store tokens in localStorage with error handling
+      try {
+        localStorage.setItem('access_token', loginResult.access_token);
+        localStorage.setItem('refresh_token', loginResult.refresh_token);
+        localStorage.setItem('user', JSON.stringify(loginResult.user));
 
-      // Optional: Remember me functionality
-      if (rememberMe) {
-        localStorage.setItem('remember_user', 'true');
-        localStorage.setItem('last_identifier', identifier);
-        localStorage.setItem('last_sucursal', sucursalId);
+        // Optional: Remember me functionality
+        if (rememberMe) {
+          localStorage.setItem('remember_user', 'true');
+          localStorage.setItem('last_identifier', identifier.trim());
+          localStorage.setItem('last_sucursal', sucursalId);
+        } else {
+          // Clear remember me data if not checked
+          localStorage.removeItem('remember_user');
+          localStorage.removeItem('last_identifier');
+          localStorage.removeItem('last_sucursal');
+        }
+      } catch (storageError) {
+        console.warn('Error storing login data:', storageError);
+        // Continue anyway, just log the warning
       }
 
-      console.log('Login exitoso:', loginResult.user);
-      
       // Navigate to dashboard
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
       
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log('Petición de login abortada.');
-        return;
-      }
-      console.error('Error en login:', err);
-      setGeneralError(err instanceof Error ? err.message : 'Error de conexión');
+      const errorMessage = err instanceof Error ? err.message : 'Error de conexión';
+      setGeneralError(errorMessage);
+      
+      // Clear password field on error for security
+      setPassword('');
+      
     } finally {
       setIsLoading(false);
-      fetchControllerRef.current = null;
     }
-  }, [isLoading, isFormValid, navigate]);
+  }, [identifier, password, sucursalId, rememberMe, isLoading, isFormValid, navigate]);
 
   // Removed selectedSucursal to prevent re-renders
 

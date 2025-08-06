@@ -7,77 +7,67 @@ export interface Sucursal {
   direccion?: string;
   telefono?: string;
   manager?: string;
-  is_active: boolean;
+  is_active?: boolean;
 }
 
 export function useSucursales() {
-  console.log('🏢 useSucursales hook called at', new Date().toLocaleTimeString());
-  
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('🏢 useSucursales useEffect triggered');
+    // Flag para ignorar respuestas obsoletas (patrón recomendado por React)
+    let ignore = false;
+
     const fetchSucursales = async () => {
       try {
-        console.log('🔄 Starting fetch request to /api/v1/sucursales/');
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch('/api/v1/sucursales/');
-        console.log('📡 Response received:', response.status, response.statusText);
-        
+
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        console.log('✅ Data received:', data);
-        console.log('📊 Number of sucursales:', data.length);
-        setSucursales(data);
-        console.log('🎯 Sucursales set in state');
+        
+        // Solo actualizar el estado si la respuesta no es obsoleta
+        if (!ignore) {
+          // Normalizar datos agregando is_active si no existe
+          const normalizedData = data.map((sucursal: any) => ({
+            ...sucursal,
+            is_active: sucursal.is_active ?? true
+          }));
+
+          setSucursales(normalizedData);
+          setError(null);
+        }
+
       } catch (err) {
-        console.error('❌ Error fetching sucursales:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
-        console.log('🔄 Using fallback data');
-        // Fallback con datos de ejemplo para desarrollo
-        const fallbackData = [
-          {
-            id: '1',
-            codigo: 'SUC001',
-            nombre: 'Sucursal Central',
-            direccion: 'Av. Principal 123',
-            manager: 'Juan Pérez',
-            is_active: true
-          },
-          {
-            id: '2',
-            codigo: 'SUC002',
-            nombre: 'Sucursal Norte',
-            direccion: 'Calle Norte 456',
-            manager: 'María García',
-            is_active: true
-          },
-          {
-            id: '3',
-            codigo: 'SUC003',
-            nombre: 'Sucursal Sur',
-            direccion: 'Av. Sur 789',
-            manager: 'Carlos López',
-            is_active: true
-          }
-        ];
-        setSucursales(fallbackData);
-        console.log('🎯 Fallback data set:', fallbackData.length, 'sucursales');
+        // Solo manejar errores si la respuesta no es obsoleta
+        if (!ignore) {
+          const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+          console.error('Error fetching sucursales:', errorMessage);
+          
+          setError(errorMessage);
+          setSucursales([]);
+        }
       } finally {
-        setLoading(false);
-        console.log('✅ Loading set to false');
+        // Solo actualizar loading si la respuesta no es obsoleta
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     };
 
     fetchSucursales();
-  }, []);
+
+    // Cleanup function - marcar respuestas como obsoletas
+    return () => {
+      ignore = true;
+    };
+  }, []); // Array de dependencias vacío - solo ejecutar una vez
 
   return { sucursales, loading, error };
 }

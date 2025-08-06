@@ -14,11 +14,26 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     strictPort: true,
-    hmr: {
-      port: 80,
-      host: 'localhost',
-    },
+    hmr: false, // Deshabilitado para evitar refreshes automáticos
     cors: true,
-    allowedHosts: ['localhost', 'frontend', '172.18.0.7'],
+    watch: {
+      usePolling: false, // Intentar deshabilitar polling completamente
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/*.log',
+        '**/coverage/**',
+        '**/tmp/**',
+        '**/.vite/**',
+        '**/.DS_Store',
+        '**/Thumbs.db'
+      ],
+    },
+  },
+  // Optimizaciones adicionales para desarrollo
+  optimizeDeps: {
+    exclude: ['fsevents'], // Excluir librerías que pueden causar problemas en Docker
   },
 })

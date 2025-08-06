@@ -6,7 +6,10 @@
       "Bash(curl:*)",
       "Bash(docker compose:*)",
       "Bash(docker system prune:*)",
-      "Bash(docker volume prune:*)"
+      "Bash(docker volume prune:*)",
+      "Bash(make status-dev:*)",
+      "Bash(make logs-frontend:*)",
+      "WebFetch(domain:react.dev)"
     ],
     "deny": []
   }
