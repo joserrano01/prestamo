@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
-    health, sucursales
-    # auth, users, loans, clients, search, monitoring, admin  # Temporalmente comentado
+    health, sucursales, auth
+    # users, loans, clients, search, monitoring, admin  # Temporalmente comentado
     # solicitudes, agenda_cobranza  # Temporalmente comentado para resolver errores de modelos
 )
 
@@ -19,6 +19,13 @@ api_router.include_router(
     sucursales.router,
     prefix="/sucursales",
     tags=["sucursales"]
+)
+
+# Incluir rutas de autenticación
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["auth"]
 )
 
 # # Incluir rutas de solicitudes

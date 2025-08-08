@@ -132,9 +132,9 @@ async def shutdown_event():
 # Agregar middleware de seguridad (orden importante)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(AuditMiddleware)
-app.add_middleware(InputSanitizationMiddleware)
-app.add_middleware(SessionSecurityMiddleware)
-app.add_middleware(RateLimitMiddleware)
+# app.add_middleware(InputSanitizationMiddleware)  # Deshabilitado para desarrollo
+# app.add_middleware(SessionSecurityMiddleware)    # Deshabilitado para desarrollo
+# app.add_middleware(RateLimitMiddleware)          # Deshabilitado para desarrollo
 
 # Configurar CORS (después de middleware de seguridad)
 app.add_middleware(

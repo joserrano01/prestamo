@@ -56,7 +56,10 @@ async def login_with_sucursal(
         
         # Si no se encuentra, buscar en emails adicionales
         if not usuario:
-            stmt_email = select(Usuario).join(UsuarioEmail).where(
+            stmt_email = select(Usuario).join(
+                UsuarioEmail, 
+                Usuario.id == UsuarioEmail.usuario_id
+            ).where(
                 UsuarioEmail.email == login_data.identifier,
                 UsuarioEmail.is_active == True,
                 Usuario.is_active == True

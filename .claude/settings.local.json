@@ -9,7 +9,12 @@
       "Bash(docker volume prune:*)",
       "Bash(make status-dev:*)",
       "Bash(make logs-frontend:*)",
-      "WebFetch(domain:react.dev)"
+      "WebFetch(domain:react.dev)",
+      "Bash(npm run dev:*)",
+      "Bash(make status:*)",
+      "Bash(make:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose:*)"
     ],
     "deny": []
   }

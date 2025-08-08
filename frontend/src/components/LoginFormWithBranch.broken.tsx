@@ -236,10 +236,12 @@ export const LoginFormWithBranch = React.memo(() => {
     }
   }, [identifier, password, sucursalId, rememberMe, isLoading, isFormValid, navigate]);
 
+  // Removed selectedSucursal to prevent re-renders
+
   return (
     <div className="w-full">
       {sucursalesError && (
-        <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
+        <div className="mb-6 p-4 bg-red-50/90 backdrop-blur-sm rounded-lg border border-red-200">
           <div className="flex items-center">
             <AlertTriangleIcon className="h-5 w-5 text-red-500 mr-3" />
             <div>
@@ -249,202 +251,89 @@ export const LoginFormWithBranch = React.memo(() => {
               <p className="text-sm text-red-700 mt-1">{sucursalesError}</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Login Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        {/* Error Alert */}
-        {generalError && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg animate-fade-in">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertTriangleIcon className="h-5 w-5 text-red-400" />
+                    placeholder="Ingresa tu contraseña"
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-green-600 transition-colors focus:outline-none focus:text-green-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? 
+                      <EyeOffIcon className="h-5 w-5" /> : 
+                      <EyeIcon className="h-5 w-5" />
+                    }
+                  </button>
+                </div>
+                {fieldErrors.password && (
+                  <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
+                    <AlertTriangleIcon className="h-4 w-4" />
+                    <p className="text-sm font-medium">{fieldErrors.password}</p>
+                  </div>
+                )}
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700 font-medium">{generalError}</p>
-              </div>
-            </div>
-          </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className={isLoading || sucursalesLoading ? 'opacity-60 pointer-events-none' : ''}>
-            
-            {/* Branch Selector */}
-            <div className="space-y-2">
-              <label htmlFor="sucursal_id" className="block text-sm font-semibold text-gray-800">
-                Sucursal
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
-                  <BranchIcon className="h-5 w-5" />
-                </div>
-                <select
-                  id="sucursal_id"
-                  name="sucursal_id"
-                  value={sucursalId}
-                  onChange={handleInputChange}
-                  onBlur={(e) => validateField(e.target.name, e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium ${
-                    fieldErrors.sucursal_id 
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  required
-                >
-                  <option value="" className="text-gray-500">
-                    {sucursalesLoading ? 'Cargando sucursales...' : 'Selecciona tu sucursal'}
-                  </option>
-                  {sucursales.map((sucursal) => (
-                    <option key={sucursal.id} value={sucursal.id} className="text-gray-900">
-                      {sucursal.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.sucursal_id && (
-                <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
-                  <AlertTriangleIcon className="h-4 w-4" />
-                  <p className="text-sm font-medium">{fieldErrors.sucursal_id}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Identifier Field */}
-            <div className="space-y-2">
-              <label htmlFor="identifier" className="block text-sm font-semibold text-gray-800">
-                Email o Código de Usuario
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
-                  <UserIcon className="h-5 w-5" />
-                </div>
-                <input
-                  id="identifier"
-                  name="identifier"
-                  type="text"
-                  value={identifier}
-                  onChange={handleInputChange}
-                  onBlur={(e) => validateField(e.target.name, e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium placeholder:text-gray-400 ${
-                    fieldErrors.identifier 
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  placeholder="tu@email.com o USR001"
-                  required
-                  autoComplete="username"
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                Puedes usar tu email o código de usuario
-              </p>
-              {fieldErrors.identifier && (
-                <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
-                  <AlertTriangleIcon className="h-4 w-4" />
-                  <p className="text-sm font-medium">{fieldErrors.identifier}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-800">
-                Contraseña
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-green-600 transition-colors">
-                  <LockIcon className="h-5 w-5" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={handleInputChange}
-                  onBlur={(e) => validateField(e.target.name, e.target.value)}
-                  className={`w-full pl-12 pr-12 py-3.5 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all duration-200 text-gray-900 font-medium placeholder:text-gray-400 ${fieldErrors.password ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'}`}
-                  placeholder="Ingresa tu contraseña"
-                  required
-                  autoComplete="current-password"
-                />
+              {/* Options */}
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center group cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded transition-all duration-200 group-hover:border-green-400"
+                    />
+                    {rememberMe && (
+                      <CheckIcon className="h-3 w-3 text-green-600 absolute top-0.5 left-0.5 pointer-events-none" />
+                    )}
+                  </div>
+                  <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900 transition-colors font-medium">
+                    Recordarme
+                  </span>
+                </label>
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-green-600 transition-colors focus:outline-none focus:text-green-600"
-                  tabIndex={-1}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors focus:outline-none focus:underline"
+                  onClick={() => alert('Función de recuperación de contraseña próximamente')}
                 >
-                  {showPassword ? 
-                    <EyeOffIcon className="h-5 w-5" /> : 
-                    <EyeIcon className="h-5 w-5" />
-                  }
+                  ¿Olvidaste tu contraseña?
                 </button>
               </div>
-              {fieldErrors.password && (
-                <div className="flex items-center space-x-2 text-red-600 animate-fade-in">
-                  <AlertTriangleIcon className="h-4 w-4" />
-                  <p className="text-sm font-medium">{fieldErrors.password}</p>
-                </div>
-              )}
-            </div>
 
-            {/* Options */}
-            <div className="flex items-center justify-between pt-2">
-              <label className="flex items-center group cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded transition-all duration-200 group-hover:border-green-400"
-                  />
-                  {rememberMe && (
-                    <CheckIcon className="h-3 w-3 text-green-600 absolute top-0.5 left-0.5 pointer-events-none" />
-                  )}
-                </div>
-                <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900 transition-colors font-medium">
-                  Recordarme
-                </span>
-              </label>
-              <button
-                type="button"
-                className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors focus:outline-none focus:underline"
-                onClick={() => alert('Función de recuperación de contraseña próximamente')}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
+              {/* Submit button */}
+              <div className="pt-8">
+                <button
+                  type="submit"
+                  disabled={!isFormValid || isLoading || sucursalesLoading}
+                  className={`group relative w-full py-4 px-6 border border-transparent rounded-xl text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 transform ${
+                    isFormValid && !isLoading && !sucursalesLoading
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'
+                      : 'bg-gray-400 cursor-not-allowed opacity-60'
+                  }`}
+                >
+                  <span className="absolute left-0 inset-y-0 flex items-center pl-4">
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <ShieldIcon className="h-5 w-5 text-white/80 group-hover:text-white transition-colors" />
+                    )}
+                  </span>
+                  <span className="ml-6">
+                    {isLoading ? (
+                      'Verificando credenciales...'
+                    ) : (
+                      'Iniciar Sesión Segura'
+                    )}
+                  </span>
+                </button>
+              </div>
             </div>
+          </form>
 
-            {/* Submit button */}
-            <div className="pt-8">
-              <button
-                type="submit"
-                disabled={!isFormValid || isLoading || sucursalesLoading}
-                className={`group relative w-full py-4 px-6 border border-transparent rounded-xl text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 transform ${
-                  isFormValid && !isLoading && !sucursalesLoading
-                    ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]'
-                    : 'bg-gray-400 cursor-not-allowed opacity-60'
-                }`}
-              >
-                <span className="absolute left-0 inset-y-0 flex items-center pl-4">
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  ) : (
-                    <ShieldIcon className="h-5 w-5 text-white/80 group-hover:text-white transition-colors" />
-                  )}
-                </span>
-                <span className="ml-6">
-                  {isLoading ? (
-                    'Verificando credenciales...'
-                  ) : (
-                    'Iniciar Sesión Segura'
-                  )}
-                </span>
-              </button>
-            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
