@@ -2,6 +2,18 @@
 
 Sistema completo de gestión de préstamos empresariales desarrollado con React, FastAPI y PostgreSQL, totalmente dockerizado.
 
+## 🎯 Estado Actual - v1.2.0 "Inicio de Sistema"
+
+✅ **Sistema Base Completamente Funcional**
+- ✅ Autenticación con usuarios reales de BD
+- ✅ Frontend React + Vite con hot reload
+- ✅ Backend FastAPI con middleware de seguridad
+- ✅ Base de datos PostgreSQL con datos encriptados
+- ✅ Docker Compose para desarrollo y producción
+- ✅ Nginx proxy con configuración optimizada
+- ✅ Redis, RabbitMQ, Meilisearch integrados
+- ✅ Documentación completa y comandos Makefile
+
 ## 🚀 Características
 
 ### Frontend (React + TypeScript)
@@ -146,26 +158,41 @@ prestamo/
 
 ## 🔐 Credenciales por Defecto
 
-Para pruebas iniciales:
-- **Email**: admin@financepro.com
-- **Contraseña**: admin123
-- **Sucursal**: Oficina Central
+### 👥 Usuarios de Prueba Disponibles
+
+```bash
+# Administradores
+Email: admin.bugaba@financepro.com    | Password: admin123 | Role: admin
+Email: admin.david@financepro.com     | Password: admin123 | Role: admin
+
+# Managers
+Email: manager.bugaba@financepro.com  | Password: admin123 | Role: manager  
+Email: manager.david@financepro.com   | Password: admin123 | Role: manager
+
+# Empleados
+Email: empleado.bugaba@financepro.com | Password: admin123 | Role: employee
+Email: empleado.david@financepro.com  | Password: admin123 | Role: employee
+```
+
+**Sucursales disponibles:**
+- Sucursal Bugaba (ID: e16de67c-f755-47e0-ab1b-ee6b424c2947)
+- Sucursal David (ID: 9e25bb1b-102d-4835-b542-1ebe2b8cf503)
 
 ## 🌐 Endpoints Principales
 
-### Autenticación
-- `POST /api/v1/auth/login` - Iniciar sesión
+### ✅ Disponibles y Funcionales
+- `GET /api/v1/health/` - Health check del sistema
+- `GET /api/v1/sucursales/` - Lista de sucursales activas
+- `POST /api/v1/auth/login` - Login con selección de sucursal
+- `POST /api/v1/auth/login-simple` - Login simplificado 
 - `POST /api/v1/auth/verify-2fa` - Verificar código 2FA
 - `POST /api/v1/auth/refresh` - Renovar token
+- `POST /api/v1/auth/logout` - Cerrar sesión
 
-### Préstamos
+### 🚧 En Desarrollo (Próximamente)
+- `GET /api/v1/users/` - Listar usuarios
 - `GET /api/v1/loans/` - Listar préstamos
-- `GET /api/v1/loans/stats` - Estadísticas
-
-### Clientes
 - `GET /api/v1/clients/` - Listar clientes
-
-### Usuarios
 - `GET /api/v1/users/me` - Usuario actual
 
 ## 🔧 Configuración Avanzada
@@ -259,16 +286,35 @@ Agregar certificados SSL en `nginx/ssl/` y actualizar `nginx/nginx.conf`.
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abrir Pull Request
 
-## 📝 Próximas Funcionalidades
+## 📝 Roadmap - Próximas Funcionalidades
 
-- [ ] Sistema completo de autenticación y autorización
-- [ ] CRUD completo de préstamos y clientes
+### v1.3.0 - Gestión de Usuarios
+- [ ] Endpoint `GET /api/v1/users/` - Listar usuarios
+- [ ] Endpoint `GET /api/v1/users/me` - Perfil de usuario
+- [ ] Endpoint `PUT /api/v1/users/{id}` - Actualizar usuario
+- [ ] Frontend para gestión de usuarios
+- [ ] Roles y permisos avanzados
+
+### v1.4.0 - CRUD de Clientes
+- [ ] CRUD completo de clientes
+- [ ] Búsqueda y filtros avanzados
+- [ ] Validación de documentos (cédula, pasaporte)
+- [ ] Historial de clientes
+
+### v1.5.0 - Sistema de Préstamos
+- [ ] CRUD completo de préstamos
+- [ ] Calculadora de cuotas
+- [ ] Estados de préstamos
+- [ ] Sistema de pagos
+- [ ] Reportes de mora
+
+### Futuras Versiones
+- [ ] Dashboard con métricas y gráficos
 - [ ] Sistema de notificaciones
-- [ ] Reportes avanzados con gráficos
 - [ ] Integración con servicios de pago
 - [ ] API para aplicaciones móviles
-- [ ] Sistema de auditoría
 - [ ] Backup automático
+- [ ] Auditoría avanzada
 
 ## 📄 Licencia
 
